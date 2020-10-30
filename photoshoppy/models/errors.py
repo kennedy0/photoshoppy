@@ -1,0 +1,2 @@
+class PSDReadError(BaseException):
+    pass
