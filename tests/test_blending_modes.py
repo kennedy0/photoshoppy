@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 
 from PIL import Image, ImageChops, ImageDraw
 
@@ -43,6 +44,21 @@ def render_all_blending_modes():
             render_blending_mode(output_path, blend)
         except NotImplementedError:
             print(f"{blend.name} not implemented")
+
+
+def render_single_blending_mode(name):
+    try:
+        os.makedirs(FROM_PHOTOSHOPPY_DIR)
+    except OSError:
+        pass
+
+    blend = BlendMode.from_name(name)
+    file_name = blend.name.replace(" ", "_") + ".png"
+    output_path = os.path.join(FROM_PHOTOSHOPPY_DIR, file_name)
+    try:
+        render_blending_mode(output_path, blend)
+    except NotImplementedError:
+        print(f"{blend.name} not implemented")
 
 
 def render_blending_mode(file_path: str, blend: BlendMode):
@@ -94,13 +110,23 @@ def render_sbs(file_path: str, left_image: str, right_image: str):
     img.save(file_path)
 
 
-def main():
+def main(args):
     clean_folder(FROM_PHOTOSHOPPY_DIR)
     clean_folder(SIDE_BY_SIDE_DIR)
-    render_all_blending_modes()
+    if len(args):
+        for arg in args:
+            render_single_blending_mode(name=arg)
+    else:
+        render_all_blending_modes()
     render_comparisons()
     pass
 
 
 if __name__ == "__main__":
-    main()
+    """ Given a list of blending mode names as arguments, render a comparison of Photoshop vs photoshoppy.
+    For example, to render normal, screen, and multiply:
+        test_blending_modes.py normal screen multiply
+
+    If no arguments are listed, render all blending modes.
+    """
+    main(sys.argv[1:])
