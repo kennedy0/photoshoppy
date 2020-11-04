@@ -66,9 +66,36 @@ def blend_normal(fg: np.array, bg: np.array) -> np.array:
     return fg
 
 
-@blend
-def blend_dissolve(fg: np.array, bg: np.array) -> np.array:
-    raise NotImplementedError
+def blend_dissolve(fg: np.array, bg: np.array, fg_opacity: float) -> np.array:
+    """ Dissolve is weird, so it does not use the blend decorator. """
+    # Normalize uint8 numbers to a 0-1 floating point range.
+    fg = uint8_to_float(fg)
+    bg = uint8_to_float(bg)
+
+    # Separate rgb and alpha channels
+    fg_rgb = fg[:, :, :3]
+    bg_rgb = bg[:, :, :3]
+    fg_alpha = fg[:, :, 3]
+    bg_alpha = bg[:, :, 3]
+
+    # Scale fg alpha by layer opacity
+    # ToDo: Scale by fill, too
+    fg_alpha *= fg_opacity
+
+    # Create random alpha mask
+    dissolve_mask = np.random.rand(fg_alpha.shape[0], fg_alpha.shape[1])
+    dissolve_alpha = np.where(fg_alpha > dissolve_mask, 1, 0)
+
+    # Calculate alpha
+    alpha = dissolve_alpha + bg_alpha - (dissolve_alpha * bg_alpha)
+
+    # Composite new fg over bg
+    rgb = alpha_blend(fg_rgb, bg_rgb, dissolve_alpha, bg_alpha)
+    rgba = np.dstack([rgb, alpha])
+
+    # Convert back to uint8
+    color = float_to_uint8(rgba)
+    return color
 
 
 @blend
