@@ -7,6 +7,7 @@ from typing import BinaryIO, List
 import numpy as np
 
 from .layer_channel import LayerChannel
+from .blending_ranges import BlendingRanges
 from photoshoppy.models.blend_mode.model import BlendMode
 from photoshoppy.psd_render.compositing import scale_channel
 from photoshoppy.utilities.read_section import ReadSection
@@ -36,6 +37,7 @@ class Layer:
         self._clipping_base = clipping_base
         self._flags = flags
         self._image_data = np.empty(0)
+        self._blending_ranges = None
 
     @property
     def name(self) -> str:
@@ -115,6 +117,14 @@ class Layer:
         image_data = np.dstack([r.channel_data, g.channel_data, b.channel_data, alpha])
         return image_data
 
+    @property
+    def blending_ranges(self):
+        return self._blending_ranges
+
+    @blending_ranges.setter
+    def blending_ranges(self, blending_ranges: BlendingRanges):
+        self._blending_ranges = blending_ranges
+
     def get_channel(self, name) -> LayerChannel or None:
         for channel in self.channels:
             if channel.name == name:
@@ -162,11 +172,12 @@ class Layer:
                 # ToDo: Layer Masks
                 pass
             with ReadSection(file) as blending_ranges:
-                # ToDo: Blending Ranges
-                pass
+                blending_ranges = BlendingRanges.from_file(file, section_end=blending_ranges.section_end)
 
             # Layer name (Pascal string padded to 4 bytes)
             layer_name_pstring = read_pascal_string(file, padding=4)
             name = layer_name_pstring.value
 
-        return Layer(name, rect, channels, blend, opacity, clipping_base, flags)
+        layer = Layer(name, rect, channels, blend, opacity, clipping_base, flags)
+        layer.blending_ranges = blending_ranges
+        return layer
