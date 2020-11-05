@@ -31,7 +31,7 @@ def main(files: List[str]):
         print(f"rendering layers to {OUTPUT_DIR}")
         for layer in psd.layers:
             print(f"- {layer.name} {'' if layer.visible is True else '(Hidden)'}")
-        render_layers(psd, OUTPUT_DIR, overwrite=True, skip_hidden_layers=False)
+        render_layers(psd, OUTPUT_DIR, overwrite=True, skip_hidden_layers=False, render_masks=True)
 
 
 if __name__ == "__main__":
