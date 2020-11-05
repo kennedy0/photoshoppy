@@ -15,7 +15,7 @@ def mask_to_screen_space(layer: Layer, psd: PSDFile) -> np.array:
     """ Return a Layer's mask in screen space. """
     if layer.layer_mask is None:
         raise RuntimeError(f"Layer '{layer.name}' has no layer mask; cannot convert to screen space.")
-    return _image_to_screen_space(layer.layer_mask.image_data, layer.rect, psd.width, psd.height)
+    return _image_to_screen_space(layer.layer_mask.image_data, layer.layer_mask.rect, psd.width, psd.height)
 
 
 def _image_to_screen_space(image_data: np.array, image_rect: Rect, width: int, height: int) -> np.array:
