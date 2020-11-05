@@ -3,9 +3,12 @@ from __future__ import annotations
 import struct
 from typing import BinaryIO, List
 
-import photoshoppy
-from photoshoppy.utilities.rect import Rect
+import numpy as np
 
+import photoshoppy
+from photoshoppy.utilities.array import crop_array, pad_array
+from photoshoppy.utilities.rect import Rect
+from .layer_channel import LayerChannel, CHANNEL_USER_LAYER_MASK
 
 FLAG_POSITION_RELATIVE = 1 << 0
 FLAG_MASK_DISABLED = 1 << 1
@@ -48,6 +51,13 @@ class LayerMask:
     @layer.setter
     def layer(self, layer: photoshoppy.models.layer.model.Layer):
         self._layer = layer
+
+    @property
+    def image_data(self) -> np.array:
+        m = self.layer.get_channel(CHANNEL_USER_LAYER_MASK)  # type: LayerChannel
+        bbox = Rect(0, 0, self.layer.height, self.layer.width)
+        cropped_image_data = crop_array(array=m.channel_data, rect=self.rect, bbox=bbox)
+        return pad_array(cropped_image_data, rect=self.rect, width=self.layer.width, height=self.layer.height)
 
     def flag_set(self, flag):
         """ Check if a particular flag is set. """
