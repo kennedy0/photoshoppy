@@ -24,30 +24,44 @@ def render_psd(psd: PSDFile, file_path: str, overwrite: bool = False):
         layer_data = render_utils.layer_to_screen_space(layer, psd)
         f_opacity = layer.opacity / 255.0  # Foreground opacity as a floating point value
 
+        if layer.layer_mask is not None:
+            mask = render_utils.mask_to_screen_space(layer, psd)
+        else:
+            mask = None
+
         # Composite layer data on top of image data
-        image_data = layer.blend_mode.blend_fn(fg=layer_data, bg=image_data, fg_opacity=f_opacity)
+        image_data = layer.blend_mode.blend_fn(
+            fg=layer_data,
+            bg=image_data,
+            mask=mask,
+            fg_opacity=f_opacity)
 
     _write_image(image_data, file_path, "RGBA")
 
 
 def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwrite: bool = False,
-                  skip_hidden_layers: bool = True):
+                  skip_hidden_layers: bool = True, render_masks: bool = False):
     """ Render each layer of a PSD file to a folder. """
     ext = extension.strip(".")
     for layer in psd.layers:
         if layer.visible is False and skip_hidden_layers is True:
             continue
 
-        file_path = os.path.join(folder_path, f"{layer.name}.{ext}")
-        if overwrite is False and os.path.isfile(file_path):
-            raise FileExistsError(file_path)
+        layer_path = os.path.join(folder_path, f"{layer.name}.{ext}")
+        if overwrite is False and os.path.isfile(layer_path):
+            raise FileExistsError(layer_path)
 
         if len(layer.channels) == 3:
             mode = "RGB"
         else:
             mode = "RGBA"
 
-        _write_image(layer.image_data, file_path, mode)
+        _write_image(layer.image_data, layer_path, mode)
+
+        if render_masks:
+            if layer.layer_mask is not None:
+                mask_path = os.path.join(folder_path, f"{layer.name}_mask.{ext}")
+                _write_image(layer.layer_mask.image_data, mask_path, "L")
 
 
 def render_image_data(psd: PSDFile, file_path: str, overwrite: bool = False):
