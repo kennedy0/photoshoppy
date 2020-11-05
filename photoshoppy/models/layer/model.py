@@ -7,6 +7,8 @@ from typing import BinaryIO, List
 import numpy as np
 
 from .layer_channel import LayerChannel
+from .layer_channel import CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE
+from .layer_channel import CHANNEL_TRANSPARENCY_MASK, CHANNEL_USER_LAYER_MASK, CHANNEL_REAL_USER_LAYER_MASK
 from .layer_mask import LayerMask
 from .blending_ranges import BlendingRanges
 from photoshoppy.models.blend_mode.model import BlendMode
@@ -96,17 +98,17 @@ class Layer:
     @property
     def image_data(self):
         """ Returns the Layer's image data as a composited RGBA image. """
-        r = self.get_channel("red")
-        g = self.get_channel("green")
-        b = self.get_channel("blue")
-        a = self.get_channel("transparency mask")
+        r = self.get_channel(CHANNEL_RED)
+        g = self.get_channel(CHANNEL_GREEN)
+        b = self.get_channel(CHANNEL_BLUE)
+        a = self.get_channel(CHANNEL_TRANSPARENCY_MASK)
 
-        # Get alpha channel
+        # Get alpha channel.
         if a is None:
             # If no alpha channel is present, generate one with the layer's opacity value
             alpha = np.full((self.height, self.width), 255, dtype=np.uint8)
         else:
-            # Return the alpha channel, scaled by the opacity value
+            # Return the alpha channel
             alpha = a.channel_data
 
         # Layer fill scales the overall opacity
