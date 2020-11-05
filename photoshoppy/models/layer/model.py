@@ -139,7 +139,7 @@ class Layer:
             return False
 
     @classmethod
-    def from_layer_record(cls, file: BinaryIO) -> Layer:
+    def read_layer_record(cls, file: BinaryIO) -> Layer:
         """ Create a new Layer by reading its Layer Record from a file. """
         rect = struct.unpack('>4i', file.read(16))  # (Top, Left, Bottom, Right)
         rect = Rect(*rect)

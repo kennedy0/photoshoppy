@@ -156,7 +156,7 @@ class PSDFile:
 
             # Create layers from layer records
             for i in range(layer_count):
-                layer = Layer.from_layer_record(self._file)
+                layer = Layer.read_layer_record(self._file)
                 self._layers.append(layer)
 
             # Read layer channel data
