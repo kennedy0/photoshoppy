@@ -45,7 +45,6 @@ class LayerChannel:
         return self._layer
 
     def read_channel_data(self, file: BinaryIO) -> np.array:
-        print(hex(file.tell()), self.name, self.layer.name)
         if self.name in [CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE, CHANNEL_TRANSPARENCY_MASK]:
             self._channel_data = get_channel_data(file, self.layer.width, self.layer.height)
         elif self.name in [CHANNEL_USER_LAYER_MASK, CHANNEL_REAL_USER_LAYER_MASK]:
