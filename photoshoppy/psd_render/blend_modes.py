@@ -7,7 +7,7 @@ from .compositing import *
 
 def blend(blend_fn: Callable) -> np.array:
     """ Decorator function for handling blend modes. """
-    def bm(fg: np.array, bg: np.array, fg_opacity: float):
+    def bm(fg: np.array, bg: np.array, mask: np.array or None, fg_opacity: float):
         # Normalize uint8 numbers to a 0-1 floating point range.
         fg = uint8_to_float(fg)
         bg = uint8_to_float(bg)
@@ -17,6 +17,10 @@ def blend(blend_fn: Callable) -> np.array:
         bg_rgb = bg[:, :, :3]
         fg_alpha = fg[:, :, 3]
         bg_alpha = bg[:, :, 3]
+
+        # Apply mask
+        if mask is not None:
+            fg_alpha *= uint8_to_float(mask)
 
         # Calculate alpha
         alpha = fg_alpha + bg_alpha - (fg_alpha * bg_alpha)
