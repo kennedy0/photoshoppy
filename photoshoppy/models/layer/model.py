@@ -7,6 +7,7 @@ from typing import BinaryIO, List
 import numpy as np
 
 from .layer_channel import LayerChannel
+from .layer_mask import LayerMask
 from .blending_ranges import BlendingRanges
 from photoshoppy.models.blend_mode.model import BlendMode
 from photoshoppy.psd_render.compositing import scale_channel
@@ -37,7 +38,9 @@ class Layer:
         self._clipping_base = clipping_base
         self._flags = flags
         self._image_data = np.empty(0)
+
         self._blending_ranges = None
+        self._layer_mask = None
 
     @property
     def name(self) -> str:
@@ -125,6 +128,14 @@ class Layer:
     def blending_ranges(self, blending_ranges: BlendingRanges):
         self._blending_ranges = blending_ranges
 
+    @property
+    def layer_mask(self):
+        return self._layer_mask
+
+    @layer_mask.setter
+    def layer_mask(self, layer_mask: LayerMask):
+        self._layer_mask = layer_mask
+
     def get_channel(self, name) -> LayerChannel or None:
         for channel in self.channels:
             if channel.name == name:
@@ -167,12 +178,14 @@ class Layer:
 
         file.seek(1, os.SEEK_CUR)  # Filler byte
 
-        with ReadSection(file) as extra_data:
-            with ReadSection(file) as layer_mask:
-                # ToDo: Layer Masks
-                pass
-            with ReadSection(file) as blending_ranges:
-                blending_ranges = BlendingRanges.from_file(file, section_end=blending_ranges.section_end)
+        with ReadSection(file) as extra_data_section:
+            with ReadSection(file) as layer_mask_section:
+                if layer_mask_section.section_length > 0:
+                    layer_mask = LayerMask.from_file(file, data_length=layer_mask_section.section_length)
+                else:
+                    layer_mask = None
+            with ReadSection(file) as blending_ranges_section:
+                blending_ranges = BlendingRanges.from_file(file, section_end=blending_ranges_section.section_end)
 
             # Layer name (Pascal string padded to 4 bytes)
             layer_name_pstring = read_pascal_string(file, padding=4)
@@ -180,4 +193,6 @@ class Layer:
 
         layer = Layer(name, rect, channels, blend, opacity, clipping_base, flags)
         layer.blending_ranges = blending_ranges
+        if layer_mask is not None:
+            layer.layer_mask = layer_mask
         return layer
