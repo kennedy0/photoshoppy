@@ -14,5 +14,9 @@ def layer_to_screen_space(layer: Layer, psd: PSDFile) -> np.array:
     return ss_image_data
 
 
-def clamp(n: int, minimum: int, maximum: int) -> int:
-    return max(minimum, min(n, maximum))
+def mask_to_screen_space(layer: Layer, psd: PSDFile) -> np.array:
+    """ Return a Layer's mask in screen space. """
+    bbox = Rect(0, 0, psd.height, psd.width)
+    cropped_image_data = crop_array(array=layer.layer_mask.image_data, rect=layer.rect, bbox=bbox)
+    ss_image_data = pad_array(array=cropped_image_data, rect=layer.rect, width=psd.width, height=psd.height)
+    return ss_image_data
