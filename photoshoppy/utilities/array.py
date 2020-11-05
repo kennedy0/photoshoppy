@@ -13,7 +13,10 @@ def crop_array(array: np.array, rect: Rect, bbox: Rect) -> np.array:
     top = clamp(bbox.top - rect.top, minimum=0, maximum=height)
     bottom = clamp(bbox.bottom - rect.top, minimum=0, maximum=height)
 
-    return array[top:bottom, left:right, :]
+    if array.ndim == 2:
+        return array[top:bottom, left:right]
+    else:
+        return array[top:bottom, left:right, :]
 
 
 def pad_array(array: np.array, rect: Rect, width: int, height: int, fill_value: int = 0):
@@ -27,7 +30,11 @@ def pad_array(array: np.array, rect: Rect, width: int, height: int, fill_value: 
     pad_x = (pad_left, pad_right)
     pad_y = (pad_top, pad_bottom)
 
-    return np.pad(array, pad_width=(pad_y, pad_x, (0, 0)), mode='constant', constant_values=fill_value)
+    if array.ndim == 2:
+        return np.pad(array, pad_width=(pad_y, pad_x), mode='constant', constant_values=fill_value)
+    else:
+        return np.pad(array, pad_width=(pad_y, pad_x, (0, 0)), mode='constant', constant_values=fill_value)
+
 
 
 def clamp(n: int, minimum: int, maximum: int) -> int:
