@@ -36,6 +36,5 @@ def pad_array(array: np.array, rect: Rect, width: int, height: int, fill_value: 
         return np.pad(array, pad_width=(pad_y, pad_x, (0, 0)), mode='constant', constant_values=fill_value)
 
 
-
 def clamp(n: int, minimum: int, maximum: int) -> int:
     return max(minimum, min(n, maximum))
