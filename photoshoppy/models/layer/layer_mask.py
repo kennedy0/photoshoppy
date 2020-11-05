@@ -3,6 +3,7 @@ from __future__ import annotations
 import struct
 from typing import BinaryIO, List
 
+import photoshoppy
 from photoshoppy.utilities.rect import Rect
 
 
@@ -15,9 +16,38 @@ FLAG_PARAMETERS_APPLIED = 1 << 4  # Indicates that the user mask and/or vector m
 
 class LayerMask:
     def __init__(self, rect: Rect, default_color: int, flags: int):
-        self.rect = rect
-        self.default_color = default_color
-        self.flags = flags
+        self._rect = rect
+        self._default_color = default_color
+        self._flags = flags
+        self._layer = None
+
+    @property
+    def rect(self) -> Rect:
+        return self._rect
+
+    @property
+    def default_color(self) -> int:
+        return self._default_color
+
+    @property
+    def flags(self) -> int:
+        return self._flags
+
+    @property
+    def width(self) -> int:
+        return self.rect.right - self.rect.left
+
+    @property
+    def height(self) -> int:
+        return self.rect.bottom - self.rect.top
+
+    @property
+    def layer(self) -> photoshoppy.models.layer.model.Layer or None:
+        return self._layer
+
+    @layer.setter
+    def layer(self, layer: photoshoppy.models.layer.model.Layer):
+        self._layer = layer
 
     def flag_set(self, flag):
         """ Check if a particular flag is set. """

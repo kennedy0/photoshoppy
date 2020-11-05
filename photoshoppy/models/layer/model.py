@@ -25,14 +25,11 @@ FLAG_UNDOCUMENTED = 1 << 5
 
 
 class Layer:
-    def __init__(self, name: str, rect: Rect = Rect(0, 0, 0, 0), channels: List[LayerChannel] = None,
-                 blend: BlendMode = BlendMode.from_name("normal"), opacity: int = 255, clipping_base: bool = True,
-                 flags: int = FLAG_HAS_USEFUL_INFORMATION):
+    def __init__(self, name: str, rect: Rect = Rect(0, 0, 0, 0), blend: BlendMode = BlendMode.from_name("normal"),
+                 opacity: int = 255, clipping_base: bool = True, flags: int = FLAG_HAS_USEFUL_INFORMATION):
         self._name = name
         self._rect = rect
-        if channels is None:
-            channels = []
-        self._channels = channels
+        self._channels = []
         self._blend_mode = blend
         self._opacity = opacity
         self._clipping_base = clipping_base
@@ -121,7 +118,7 @@ class Layer:
         return image_data
 
     @property
-    def blending_ranges(self):
+    def blending_ranges(self) -> BlendingRanges:
         return self._blending_ranges
 
     @blending_ranges.setter
@@ -129,20 +126,24 @@ class Layer:
         self._blending_ranges = blending_ranges
 
     @property
-    def layer_mask(self):
+    def layer_mask(self) -> LayerMask:
         return self._layer_mask
 
     @layer_mask.setter
     def layer_mask(self, layer_mask: LayerMask):
+        layer_mask.layer = self
         self._layer_mask = layer_mask
 
-    def get_channel(self, name) -> LayerChannel or None:
+    def add_channel(self, channel_id: int):
+        self._channels.append(LayerChannel(channel_id=channel_id, layer=self))
+
+    def get_channel(self, name: str) -> LayerChannel or None:
         for channel in self.channels:
             if channel.name == name:
                 return channel
         return None
 
-    def flag_set(self, flag):
+    def flag_set(self, flag: int) -> bool:
         """ Check if a particular flag is set. """
         if self._flags & flag != 0:
             return True
@@ -155,12 +156,12 @@ class Layer:
         rect = struct.unpack('>4i', file.read(16))  # (Top, Left, Bottom, Right)
         rect = Rect(*rect)
 
-        channels = []
+        channel_ids = []
         num_channels = struct.unpack('>H', file.read(2))[0]
         for channel in range(num_channels):
             channel_id = struct.unpack('>h', file.read(2))[0]
             channel_data_length = struct.unpack('>L', file.read(4))[0]
-            channels.append(LayerChannel(channel_id))
+            channel_ids.append(channel_id)
 
         unpack_string(file.read(4), length=4)  # Blend mode signature = 8BIM
         blend_mode_key = unpack_string(file.read(4), length=4)
@@ -191,7 +192,9 @@ class Layer:
             layer_name_pstring = read_pascal_string(file, padding=4)
             name = layer_name_pstring.value
 
-        layer = Layer(name, rect, channels, blend, opacity, clipping_base, flags)
+        layer = Layer(name, rect, blend, opacity, clipping_base, flags)
+        for channel_id in channel_ids:
+            layer.add_channel(channel_id)
         layer.blending_ranges = blending_ranges
         if layer_mask is not None:
             layer.layer_mask = layer_mask

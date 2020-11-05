@@ -162,7 +162,7 @@ class PSDFile:
             # Read layer channel data
             for layer in self.layers:
                 for channel in layer.channels:
-                    channel.read_channel_data(file=self._file, width=layer.width, height=layer.height)
+                    channel.read_channel_data(file=self._file)
 
     def _read_global_layer_mask_info(self):
         with ReadSection(self._file):
