@@ -9,7 +9,8 @@ import numpy as np
 from .layer_channel import LayerChannel
 from .layer_channel import CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE
 from .layer_channel import CHANNEL_TRANSPARENCY_MASK
-from .layer_info.model import LayerInfo, read_layer_info
+from .layer_info.model import LayerInfo
+from .layer_info.utilities import read_layer_info
 from .layer_mask import LayerMask
 from .blending_ranges import BlendingRanges
 from photoshoppy.models.blend_mode.model import BlendMode
@@ -207,8 +208,7 @@ class Layer:
             layer_info_list = []
             while file.tell() < extra_data_section.section_end:
                 layer_info = read_layer_info(file)
-                if layer_info is not None:
-                    layer_info_list.append(layer_info)
+                layer_info_list.append(layer_info)
 
         # Build Layer
         layer = Layer(name, rect, blend, opacity, clipping_base, flags)
