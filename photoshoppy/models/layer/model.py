@@ -8,7 +8,8 @@ import numpy as np
 
 from .layer_channel import LayerChannel
 from .layer_channel import CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE
-from .layer_channel import CHANNEL_TRANSPARENCY_MASK, CHANNEL_USER_LAYER_MASK, CHANNEL_REAL_USER_LAYER_MASK
+from .layer_channel import CHANNEL_TRANSPARENCY_MASK
+from .layer_info.model import LayerInfo, read_layer_info
 from .layer_mask import LayerMask
 from .blending_ranges import BlendingRanges
 from photoshoppy.models.blend_mode.model import BlendMode
@@ -40,6 +41,7 @@ class Layer:
 
         self._blending_ranges = None
         self._layer_mask = None
+        self._layer_info = []
 
     @property
     def name(self) -> str:
@@ -136,6 +138,13 @@ class Layer:
         layer_mask.layer = self
         self._layer_mask = layer_mask
 
+    @property
+    def layer_info(self) -> List[LayerInfo]:
+        return self._layer_info
+
+    def add_layer_info(self, layer_info: LayerInfo):
+        self._layer_info.append(layer_info)
+
     def add_channel(self, channel_id: int):
         self._channels.append(LayerChannel(channel_id=channel_id, layer=self))
 
@@ -194,10 +203,20 @@ class Layer:
             layer_name_pstring = read_pascal_string(file, padding=4)
             name = layer_name_pstring.value
 
+            # Read additional layer info
+            layer_info_list = []
+            while file.tell() < extra_data_section.section_end:
+                layer_info = read_layer_info(file)
+                if layer_info is not None:
+                    layer_info_list.append(layer_info)
+
+        # Build Layer
         layer = Layer(name, rect, blend, opacity, clipping_base, flags)
         for channel_id in channel_ids:
             layer.add_channel(channel_id)
         layer.blending_ranges = blending_ranges
         if layer_mask is not None:
             layer.layer_mask = layer_mask
+        for layer_info in layer_info_list:
+            layer.add_layer_info(layer_info)
         return layer

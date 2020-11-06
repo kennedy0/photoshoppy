@@ -1,4 +1,5 @@
 import os
+import re
 
 import numpy as np
 from PIL import Image
@@ -47,7 +48,8 @@ def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwr
         if layer.visible is False and skip_hidden_layers is True:
             continue
 
-        layer_path = os.path.join(folder_path, f"{layer.name}.{ext}")
+        layer_name = re.sub(r"[^~A-Za-z0-9_\s]+", "", layer.name)
+        layer_path = os.path.join(folder_path, f"{layer_name}.{ext}")
         if overwrite is False and os.path.isfile(layer_path):
             raise FileExistsError(layer_path)
 
@@ -60,7 +62,7 @@ def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwr
 
         if render_masks:
             if layer.layer_mask is not None:
-                mask_path = os.path.join(folder_path, f"{layer.name}_mask.{ext}")
+                mask_path = os.path.join(folder_path, f"{layer_name}_mask.{ext}")
                 _write_image(layer.layer_mask.image_data, mask_path, "L")
 
 
