@@ -10,6 +10,7 @@ from .layer_channel import LayerChannel
 from .layer_channel import CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE
 from .layer_channel import CHANNEL_TRANSPARENCY_MASK
 from .layer_info.model import LayerInfo
+from .layer_info.layer_info_blocks.section_divider import SectionDivider, DividerType
 from .layer_info.utilities import read_layer_info
 from .layer_mask import LayerMask
 from .blending_ranges import BlendingRanges
@@ -42,6 +43,10 @@ class Layer:
         self._blending_ranges = None
         self._layer_mask = None
         self._layer_info = []
+
+        self._is_group = False
+        self._is_bounding_section_divider = False
+        self._parent = None
 
     @property
     def name(self) -> str:
@@ -118,6 +123,13 @@ class Layer:
     def flags(self, flags: int):
         self._flags = flags
 
+    def flag_is_set(self, flag: int) -> bool:
+        """ Check if a particular flag is set. """
+        if self._flags & flag != 0:
+            return True
+        else:
+            return False
+
     @property
     def transparency_protected(self) -> bool:
         return self.flag_is_set(FLAG_TRANSPARANCY_PROTECTED)
@@ -193,13 +205,27 @@ class Layer:
 
     def add_layer_info(self, layer_info: LayerInfo):
         self._layer_info.append(layer_info)
+        if isinstance(layer_info, SectionDivider):
+            if layer_info.divider_type in [DividerType.OpenFolder, DividerType.ClosedFolder]:
+                self._is_group = True
+            elif layer_info.divider_type == DividerType.BoundingSectionDivider:
+                self._is_bounding_section_divider = True
 
-    def flag_is_set(self, flag: int) -> bool:
-        """ Check if a particular flag is set. """
-        if self._flags & flag != 0:
-            return True
-        else:
-            return False
+    @property
+    def is_group(self) -> bool:
+        return self._is_group
+
+    @property
+    def is_bounding_section_divider(self) -> bool:
+        return self._is_bounding_section_divider
+
+    @property
+    def parent(self) -> Layer or None:
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent: Layer or None):
+        self._parent = parent
 
     @classmethod
     def read_layer_record(cls, file: BinaryIO) -> Layer:
