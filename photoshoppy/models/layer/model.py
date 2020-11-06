@@ -29,15 +29,14 @@ FLAG_UNDOCUMENTED = 1 << 5
 
 
 class Layer:
-    def __init__(self, name: str, rect: Rect = Rect(0, 0, 0, 0), blend: BlendMode = BlendMode.from_name("normal"),
-                 opacity: int = 255, clipping_base: bool = True, flags: int = FLAG_HAS_USEFUL_INFORMATION):
+    def __init__(self, name: str):
         self._name = name
-        self._rect = rect
+        self._rect = Rect(0, 0, 0, 0)
         self._channels = []
-        self._blend_mode = blend
-        self._opacity = opacity
-        self._clipping_base = clipping_base
-        self._flags = flags
+        self._blend_mode = BlendMode.from_name("normal")
+        self._opacity = 255
+        self._clipping_base = True
+        self._flags = FLAG_HAS_USEFUL_INFORMATION
         self._image_data = np.empty(0)
 
         self._blending_ranges = None
@@ -48,9 +47,17 @@ class Layer:
     def name(self) -> str:
         return self._name
 
+    @name.setter
+    def name(self, name: str):
+        self._name = name
+
     @property
     def rect(self) -> Rect:
         return self._rect
+
+    @rect.setter
+    def rect(self, rect: Rect):
+        self._rect = rect
 
     @property
     def width(self) -> int:
@@ -64,36 +71,77 @@ class Layer:
     def channels(self) -> List[LayerChannel]:
         return self._channels
 
+    def add_channel(self, channel_id: int):
+        self._channels.append(LayerChannel(channel_id=channel_id, layer=self))
+
+    def get_channel(self, name: str) -> LayerChannel or None:
+        for channel in self.channels:
+            if channel.name == name:
+                return channel
+        return None
+
     @property
     def blend_mode(self) -> BlendMode:
         return self._blend_mode
+
+    @blend_mode.setter
+    def blend_mode(self, blend_mode: BlendMode):
+        self._blend_mode = blend_mode
 
     @property
     def opacity(self) -> int:
         # 0 = Transparent; 255 = Opaque
         return self._opacity
 
+    @opacity.setter
+    def opacity(self, opacity: int or float):
+        if type(opacity) == int:
+            self._opacity = opacity
+        elif type(opacity) == float:
+            self._opacity = int(opacity * 255)
+        else:
+            raise TypeError("opacity must be int or float")
+
     @property
     def clipping_base(self) -> bool:
         return self._clipping_base
 
+    @clipping_base.setter
+    def clipping_base(self, clipping_base: bool):
+        self._clipping_base = clipping_base
+
+    @property
+    def flags(self) -> int:
+        return self._flags
+
+    @flags.setter
+    def flags(self, flags: int):
+        self._flags = flags
+
     @property
     def transparency_protected(self) -> bool:
-        return self.flag_set(FLAG_TRANSPARANCY_PROTECTED)
+        return self.flag_is_set(FLAG_TRANSPARANCY_PROTECTED)
 
     @property
     def visible(self) -> bool:
-        if self.flag_set(FLAG_VISIBLE):
+        if self.flag_is_set(FLAG_VISIBLE):
             # When the visibility flag is set, it indicates that the layer is NOT visible. Seems backwards...
             return False
         else:
             return True
 
+    @visible.setter
+    def visible(self, visible: bool):
+        if visible is True:
+            self._flags = self._flags | FLAG_VISIBLE
+        else:
+            self._flags = self._flags & ~FLAG_VISIBLE
+
     @property
     def pixel_data_irrelevant(self) -> bool:
         # If True, pixel data is irrelevant to the appearance of the document
-        use_bit_4 = self.flag_set(FLAG_HAS_USEFUL_INFORMATION)
-        if use_bit_4 and self.flag_set(FLAG_PIXEL_DATA_IRRELEVANT_TO_APPEARANCE_IN_DOCUMENT):
+        use_bit_4 = self.flag_is_set(FLAG_HAS_USEFUL_INFORMATION)
+        if use_bit_4 and self.flag_is_set(FLAG_PIXEL_DATA_IRRELEVANT_TO_APPEARANCE_IN_DOCUMENT):
             return True
         else:
             return False
@@ -146,16 +194,7 @@ class Layer:
     def add_layer_info(self, layer_info: LayerInfo):
         self._layer_info.append(layer_info)
 
-    def add_channel(self, channel_id: int):
-        self._channels.append(LayerChannel(channel_id=channel_id, layer=self))
-
-    def get_channel(self, name: str) -> LayerChannel or None:
-        for channel in self.channels:
-            if channel.name == name:
-                return channel
-        return None
-
-    def flag_set(self, flag: int) -> bool:
+    def flag_is_set(self, flag: int) -> bool:
         """ Check if a particular flag is set. """
         if self._flags & flag != 0:
             return True
@@ -211,12 +250,21 @@ class Layer:
                 layer_info_list.append(layer_info)
 
         # Build Layer
-        layer = Layer(name, rect, blend, opacity, clipping_base, flags)
+        layer = Layer(name)
+        layer.rect = rect
+        layer.blend_mode = blend
+        layer.opacity = opacity
+        layer.clipping_base = clipping_base
+        layer.flags = flags
+
         for channel_id in channel_ids:
             layer.add_channel(channel_id)
         layer.blending_ranges = blending_ranges
+
         if layer_mask is not None:
             layer.layer_mask = layer_mask
+
         for layer_info in layer_info_list:
             layer.add_layer_info(layer_info)
+
         return layer
