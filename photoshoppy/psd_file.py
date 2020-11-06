@@ -1,7 +1,7 @@
 import os
 import struct
 import sys
-from typing import List
+from typing import List, Generator
 
 import numpy as np
 
@@ -28,6 +28,7 @@ class PSDFile:
 
         self._file = None
         self._read_file()
+        self._organize_layers()
 
     @property
     def file_path(self) -> str:
@@ -181,6 +182,25 @@ class PSDFile:
             height=self.height,
             channels=self.channels,
             depth=self.depth)
+
+    def _organize_layers(self):
+        """ Assign layer parents. """
+        parent = None
+        for layer in reversed(self.layers):
+            layer.parent = parent
+            if layer.is_group:
+                parent = layer
+            elif layer.is_bounding_section_divider:
+                parent = parent.parent
+
+    def iter_layers(self, skip_hidden: bool = False) -> Generator[Layer, None, None]:
+        for layer in self.layers:
+            if layer.is_group or layer.is_bounding_section_divider:
+                continue
+            elif layer.visible is False and skip_hidden:
+                continue
+            else:
+                yield layer
 
 
 if __name__ == "__main__":
