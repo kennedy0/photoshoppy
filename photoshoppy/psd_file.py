@@ -193,7 +193,14 @@ class PSDFile:
             elif layer.is_bounding_section_divider:
                 parent = parent.parent
 
-    def iter_layers(self, skip_hidden: bool = False) -> Generator[Layer, None, None]:
+    def iter_layers(self) -> Generator[Layer, None, None]:
+        for layer in self.layers:
+            if layer.is_group or layer.is_bounding_section_divider:
+                continue
+            else:
+                yield layer
+
+    def iter_groups(self) -> Generator[Layer, None, None]:
         for layer in self.layers:
             if layer.is_group or layer.is_bounding_section_divider:
                 continue

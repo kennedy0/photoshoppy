@@ -44,7 +44,7 @@ def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwr
                   skip_hidden_layers: bool = True, render_masks: bool = False):
     """ Render each layer of a PSD file to a folder. """
     ext = extension.strip(".")
-    for layer in psd.layers:
+    for layer in psd.iter_layers():
         if layer.visible is False and skip_hidden_layers is True:
             continue
 
