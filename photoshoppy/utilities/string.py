@@ -55,4 +55,4 @@ def read_unicode_string(file: BinaryIO) -> str:
 
 def clean_file_name(file_name: str) -> str:
     """ Replace invalid file name characters. """
-
+    return re.sub(r"[^~A-Za-z0-9_\s]+", "", file_name)

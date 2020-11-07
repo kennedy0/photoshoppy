@@ -1,4 +1,4 @@
-from typing import Generator
+import copy
 
 from photoshoppy.models.blend_mode.model import BlendMode
 from photoshoppy.models.layer.model import Layer
@@ -18,21 +18,16 @@ def get_render_visibility(layer: Layer) -> bool:
     return layer.visible
 
 
-def iter_top_level_layers(psd: PSDFile) -> Generator[Layer, None, None]:
-    # Create a temporary "root" layer and parent all top-level Layers to it.
+def get_root_layer(psd: PSDFile) -> Layer:
+    """ Create a temporary "root" layer and parent all top-level Layers to it. """
     root = Layer("root")
     root.blend_mode = BlendMode.from_name("pass through")
 
-    for layer in reversed(psd.layers):
+    for _layer in reversed(psd.layers):
+        layer = copy.deepcopy(_layer)
         if layer.is_bounding_section_divider:
             continue
         elif layer.parent is None:
             root.add_child(layer)
 
-    for layer in iter_group(root):
-        yield layer
-
-
-def iter_group(group: Layer) -> Generator[Layer, None, None]:
-    for layer in group.children:
-        yield layer
+    return root

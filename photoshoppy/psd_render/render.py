@@ -1,11 +1,12 @@
 import os
-import re
 
 import numpy as np
 from PIL import Image
 
+from . import render_utils
 from photoshoppy.psd_file import PSDFile
-from photoshoppy.psd_render import render_utils
+from photoshoppy.utilities.layer import get_root_layer
+from photoshoppy.utilities.string import clean_file_name
 
 
 def render_psd(psd: PSDFile, file_path: str, overwrite: bool = False):
@@ -13,30 +14,8 @@ def render_psd(psd: PSDFile, file_path: str, overwrite: bool = False):
     if overwrite is False and os.path.isfile(file_path):
         raise FileExistsError(file_path)
 
-    # Initialize image data with empty array
-    image_data = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
-
-    for layer in psd.layers:
-        if not layer.visible:
-            # Skip invisible layers
-            continue
-
-        # Transform layer data to screen space (clipping data outside document size)
-        layer_data = render_utils.layer_to_screen_space(layer, psd)
-        f_opacity = layer.opacity / 255.0  # Foreground opacity as a floating point value
-
-        if layer.layer_mask is not None:
-            mask = render_utils.mask_to_screen_space(layer, psd)
-        else:
-            mask = None
-
-        # Composite layer data on top of image data
-        image_data = layer.blend_mode.blend_fn(
-            fg=layer_data,
-            bg=image_data,
-            mask=mask,
-            fg_opacity=f_opacity)
-
+    root = get_root_layer(psd)
+    image_data = render_utils.get_group_image_data(root, psd)
     _write_image(image_data, file_path, "RGBA")
 
 
@@ -48,7 +27,7 @@ def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwr
         if layer.visible is False and skip_hidden_layers is True:
             continue
 
-        layer_name = re.sub(r"[^~A-Za-z0-9_\s]+", "", layer.name)
+        layer_name = clean_file_name(layer.name)
         layer_path = os.path.join(folder_path, f"{layer_name}.{ext}")
         if overwrite is False and os.path.isfile(layer_path):
             raise FileExistsError(layer_path)
@@ -71,7 +50,21 @@ def render_groups(psd: PSDFile, folder_path: str, extension: str = "png", overwr
     """ Render each group of a PSD file to a folder. """
     ext = extension.strip(".")
     for group in psd.iter_groups():
-        pass
+        if group.visible is False and skip_hidden_groups is True:
+            continue
+
+        group_name = clean_file_name(group.name)
+        group_path = os.path.join(folder_path, f"{group_name}.{ext}")
+        if overwrite is False and os.path.isfile(group_path):
+            raise FileExistsError(group_path)
+
+        group_image_data = render_utils.get_group_image_data(group, psd)
+        _write_image(group_image_data, group_path, "RGBA")
+
+        if render_masks:
+            if group.layer_mask is not None:
+                mask_path = os.path.join(folder_path, f"{group_name}_mask.{ext}")
+                _write_image(group.layer_mask.image_data, mask_path, "L")
 
 
 def render_image_data(psd: PSDFile, file_path: str, overwrite: bool = False):

@@ -187,11 +187,13 @@ class PSDFile:
         """ Assign layer parents. """
         parent = None
         for layer in reversed(self.layers):
-            layer.parent = parent
             if layer.is_group:
+                layer.parent = parent
                 parent = layer
             elif layer.is_bounding_section_divider:
                 parent = parent.parent
+            else:
+                layer.parent = parent
 
     def iter_layers(self) -> Generator[Layer, None, None]:
         for layer in self.layers:

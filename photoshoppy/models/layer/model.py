@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import struct
-from typing import BinaryIO, List
+from typing import BinaryIO, Generator, List
 
 import numpy as np
 
