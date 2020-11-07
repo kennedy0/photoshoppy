@@ -15,7 +15,8 @@ def render_psd(psd: PSDFile, file_path: str, overwrite: bool = False):
         raise FileExistsError(file_path)
 
     root = get_root_layer(psd)
-    image_data = render_utils.get_group_image_data(root, psd)
+    # image_data = render_utils.get_group_image_data(root, psd)
+    image_data = render_utils.composite_group(group=root, psd=psd, bg=None)
     _write_image(image_data, file_path, "RGBA")
 
 
@@ -58,7 +59,7 @@ def render_groups(psd: PSDFile, folder_path: str, extension: str = "png", overwr
         if overwrite is False and os.path.isfile(group_path):
             raise FileExistsError(group_path)
 
-        group_image_data = render_utils.get_group_image_data(group, psd)
+        group_image_data = render_utils.composite_group(group=group, psd=psd, bg=None)
         _write_image(group_image_data, group_path, "RGBA")
 
         if render_masks:

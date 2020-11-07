@@ -50,7 +50,10 @@ def alpha_blend(fg_color: np.array, bg_color: np.array, fg_alpha: np.array, bg_a
     fg_alpha = fg_alpha[:, :, None]
     bg_alpha = bg_alpha[:, :, None]
 
-    return (fg_color * fg_alpha + bg_color * bg_alpha * (1 - fg_alpha)) / (fg_alpha + bg_alpha * (1 - fg_alpha))
+    with IgnoreNumpyErrors():
+        color = (fg_color * fg_alpha + bg_color * bg_alpha * (1 - fg_alpha)) / (fg_alpha + bg_alpha * (1 - fg_alpha))
+
+    return color
 
 
 def _opacity_blend(fg: np.array, bg: np.array, opacity: float) -> np.array:

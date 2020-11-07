@@ -206,9 +206,12 @@ class Layer:
 
     def add_layer_info(self, layer_info: LayerInfo):
         self._layer_info.append(layer_info)
+
+        # Set / override some properties if this is a section divider (layer group)
         if isinstance(layer_info, SectionDivider):
             if layer_info.divider_type in [DividerType.OpenFolder, DividerType.ClosedFolder]:
                 self._is_group = True
+                self._blend_mode = layer_info.blend_mode
             elif layer_info.divider_type == DividerType.BoundingSectionDivider:
                 self._is_bounding_section_divider = True
 

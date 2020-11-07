@@ -2,6 +2,7 @@ import numpy as np
 
 from photoshoppy.models.blend_mode.model import BlendMode
 from photoshoppy.models.layer.model import Layer
+from photoshoppy.models.layer.layer_mask import LayerMask
 from photoshoppy.psd_file import PSDFile
 from photoshoppy.utilities.rect import Rect
 from photoshoppy.utilities.array import crop_array, pad_array
@@ -36,57 +37,49 @@ def _image_to_screen_space(image_data: np.array, image_rect: Rect, width: int, h
     return ss_image_data
 
 
-def get_group_image_data(group: Layer, psd: PSDFile) -> np.array:
-    """ 'Flatten' a group into a single image. """
-    transparent = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
-    image_data = transparent
+def composite_group(group: Layer, psd: PSDFile, bg: np.array or None) -> np.array:
+    if bg is None:
+        bg = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
+
+    image_data = bg
     for layer in group.children:
         if layer.visible is False:
-            # Skip invisible layers
             continue
 
-        # Get image data for layer
-        if layer.is_group:
-            # Recursive call for groups
-            layer_image_data = get_group_image_data(layer, psd)
-            layer_rect = Rect(0, 0, psd.height, psd.width)
-        else:
-            layer_image_data = layer.image_data
-            layer_rect = layer.rect
-
-        # Transform layer data to screen space (clipping data outside document size)
-        ss_image_data = _image_to_screen_space(
-            image_data=layer_image_data,
-            image_rect=layer_rect,
-            width=psd.width,
-            height=psd.height)
-        layer_opacity = layer.opacity / 255.0  # Foreground opacity as a floating point value
-
-        # Get layer mask
         if layer.layer_mask is not None:
             mask = mask_to_screen_space(layer, psd)
         else:
             mask = None
 
-        # Composite layer data on top of image data
-        image_data = layer.blend_mode.blend_fn(
-            fg=ss_image_data,
-            bg=image_data,
-            mask=mask,
-            fg_opacity=layer_opacity)
+        if layer.is_group:
+            if layer.blend_mode.name == "pass through":
+                image_data = composite_group(group=layer, psd=psd, bg=image_data)
+            else:
+                group_image_data = composite_group(group=layer, psd=psd, bg=None)
+                group_image_data = _image_to_screen_space(
+                    image_data=group_image_data,
+                    image_rect=Rect(0, 0, psd.height, psd.width),
+                    width=psd.width,
+                    height=psd.height)
+                image_data = composite_image_data(
+                    fg=group_image_data,
+                    bg=image_data,
+                    blend_mode=layer.blend_mode,
+                    mask=mask,
+                    opacity=layer.opacity)
+        else:
+            image_data = composite_image_data(
+                fg=layer_to_screen_space(layer=layer, psd=psd),
+                bg=image_data,
+                blend_mode=layer.blend_mode,
+                mask=mask,
+                opacity=layer.opacity)
 
-    # Composite result on top of transparent image (to apply masking and transparency)
-    if group.layer_mask is not None:
-        group_mask = mask_to_screen_space(group, psd)
-    else:
-        group_mask = None
-    group_opacity = group.opacity / 255.0
+    return image_data
 
-    blend_normal_fn = BlendMode.from_name("normal").blend_fn
-    group_image_data = blend_normal_fn(
-        fg=image_data,
-        bg=transparent,
-        mask=group_mask,
-        fg_opacity=group_opacity)
 
-    return group_image_data
+def composite_image_data(fg: np.array, bg: np.array, blend_mode: BlendMode, mask: np.array or None,
+                         opacity: float or int) -> np.array:
+    if isinstance(opacity, int):
+        opacity = opacity / 255.0
+    return blend_mode.blend_fn(fg=fg, bg=bg, mask=mask, fg_opacity=opacity)
