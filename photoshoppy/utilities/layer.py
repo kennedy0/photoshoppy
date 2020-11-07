@@ -19,7 +19,7 @@ def get_render_visibility(layer: Layer) -> bool:
 
 
 def get_root_layer(psd: PSDFile) -> Layer:
-    """ Create a temporary "root" layer and parent all top-level Layers to it. """
+    """ Create a "root" layer with a copy of all top-level Layers parented to it. """
     root = Layer("root")
     root.blend_mode = BlendMode.from_name("pass through")
 
