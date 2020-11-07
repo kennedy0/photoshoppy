@@ -202,11 +202,7 @@ class PSDFile:
 
     def iter_groups(self) -> Generator[Layer, None, None]:
         for layer in self.layers:
-            if layer.is_group or layer.is_bounding_section_divider:
-                continue
-            elif layer.visible is False and skip_hidden:
-                continue
-            else:
+            if layer.is_group:
                 yield layer
 
 

@@ -66,6 +66,14 @@ def render_layers(psd: PSDFile, folder_path: str, extension: str = "png", overwr
                 _write_image(layer.layer_mask.image_data, mask_path, "L")
 
 
+def render_groups(psd: PSDFile, folder_path: str, extension: str = "png", overwrite: bool = False,
+                  skip_hidden_groups: bool = True, render_masks: bool = False):
+    """ Render each group of a PSD file to a folder. """
+    ext = extension.strip(".")
+    for group in psd.iter_groups():
+        pass
+
+
 def render_image_data(psd: PSDFile, file_path: str, overwrite: bool = False):
     """ Render the image data from a PSD file as an image.
     This is the flattened representation of the document when it was last saved.
