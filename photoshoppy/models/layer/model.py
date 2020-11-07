@@ -47,6 +47,7 @@ class Layer:
         self._is_group = False
         self._is_bounding_section_divider = False
         self._parent = None
+        self._children = []
 
     @property
     def name(self) -> str:
@@ -226,6 +227,15 @@ class Layer:
     @parent.setter
     def parent(self, parent: Layer or None):
         self._parent = parent
+        if isinstance(parent, Layer):
+            parent.add_child(self)
+
+    @property
+    def children(self) -> List[Layer]:
+        return self._children
+
+    def add_child(self, child: Layer):
+        self._children.insert(0, child)
 
     @classmethod
     def read_layer_record(cls, file: BinaryIO) -> Layer:
