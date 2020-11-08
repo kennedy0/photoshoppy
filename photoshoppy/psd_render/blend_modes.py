@@ -18,28 +18,24 @@ def blend(blend_fn: Callable) -> np.array:
         fg_alpha = fg[:, :, 3]
         bg_alpha = bg[:, :, 3]
 
-        # Apply mask
-        if mask is not None:
-            fg_alpha *= uint8_to_float(mask)
+        # Porter/Duff Over operator; use blend mode for the "both" color.
+        # This was super helpful: http://ssp.impulsetrain.com/porterduff.html
+        src = fg_rgb
+        dst = bg_rgb
+        both = blend_fn(fg_rgb, bg_rgb)
 
-        # Calculate alpha
-        alpha = fg_alpha + bg_alpha - (fg_alpha * bg_alpha)
+        area_src = fg_alpha * (1 - bg_alpha)
+        area_dst = bg_alpha * (1 - fg_alpha)
+        area_both = fg_alpha * bg_alpha
 
-        # Apply blending mode
-        blend_rgb = blend_fn(fg=fg_rgb, bg=bg_rgb)
+        # Result rgb is effectively a blend + premultiplication
+        result_rgb = area_src[:, :, None] * src + area_dst[:, :, None] * dst + area_both[:, :, None] * both
+        result_alpha = area_src + area_dst + area_both
 
-        # Composite new fg over bg
-        rgb = alpha_blend(blend_rgb, bg_rgb, fg_alpha, bg_alpha)
-        rgba = np.dstack([rgb, alpha])
-
-        # Blend final result with background color; scaled by opacity.
-        # This is to support Photoshop's Layer opacity, which operates after the blend is processed.
-        final_rgb = _opacity_blend(rgba, bg, opacity=fg_opacity)
-        final_rgba = np.dstack([final_rgb, alpha])
-
-        # Convert back to uint8
-        color = float_to_uint8(final_rgba)
-        return color
+        # Combine / unpremultiply result
+        color = np.dstack([result_rgb, result_alpha])
+        color = unpremultiply(color)
+        return float_to_uint8(color)
 
     return bm
 
@@ -73,8 +69,9 @@ def blend_normal(fg: np.array, bg: np.array) -> np.array:
     return fg
 
 
-def blend_dissolve(fg: np.array, bg: np.array, fg_opacity: float) -> np.array:
+def blend_dissolve(fg: np.array, bg: np.array, fg_opacity: float, mask) -> np.array:
     """ Dissolve is weird, so it does not use the blend decorator. """
+    raise NotImplementedError
     # Normalize uint8 numbers to a 0-1 floating point range.
     fg = uint8_to_float(fg)
     bg = uint8_to_float(bg)

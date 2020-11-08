@@ -26,6 +26,20 @@ def float_to_uint8(data: np.array) -> np.array:
     return new_data.astype(np.uint8)
 
 
+def premultiply(rgba: np.array) -> np.array:
+    rgb = rgba[:, :, :3]
+    a = rgba[:, :, 3]
+    rgbp = rgb * a[:, :, None]
+    return np.dstack([rgbp, a])
+
+
+def unpremultiply(rgba: np.array) -> np.array:
+    rgbp = rgba[:, :, :3]
+    a = rgba[:, :, 3]
+    rgb = rgbp / a[:, :, None]
+    return np.dstack([rgb, a])
+
+
 def scale_channel(array: np.array, scale: float) -> np.array:
     array = uint8_to_float(array)
     array *= scale

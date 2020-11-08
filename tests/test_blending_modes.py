@@ -65,7 +65,7 @@ def render_blending_mode(file_path: str, blend: BlendMode):
     print(f"rendering {file_path}")
     fg = render_utils.layer_to_screen_space(psd.layer("colors"), psd)
     bg = render_utils.layer_to_screen_space(psd.layer("lena"), psd)
-    image_data = blend.blend_fn(fg=fg, bg=bg, fg_opacity=1.0)
+    image_data = blend.blend_fn(fg=fg, bg=bg, fg_opacity=1.0, mask=None)
     image = Image.fromarray(image_data, mode="RGBA")
     image.save(file_path)
 
