@@ -36,7 +36,8 @@ def premultiply(rgba: np.array) -> np.array:
 def unpremultiply(rgba: np.array) -> np.array:
     rgbp = rgba[:, :, :3]
     a = rgba[:, :, 3]
-    rgb = rgbp / a[:, :, None]
+    with IgnoreNumpyErrors():
+        rgb = rgbp / a[:, :, None]
     return np.dstack([rgb, a])
 
 

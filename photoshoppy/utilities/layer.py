@@ -5,19 +5,6 @@ from photoshoppy.models.layer.model import Layer
 from photoshoppy.psd_file import PSDFile
 
 
-def get_render_visibility(layer: Layer) -> bool:
-    """ Traverse this Layer's parents to determine render visibility.
-    If any of this Layer's parents are not visible, the Layer is not visible.
-    """
-    parent: Layer = layer.parent
-    while parent is not None:
-        if parent.visible is False:
-            return False
-        else:
-            parent: Layer or None = parent.parent
-    return layer.visible
-
-
 def get_root_layer(psd: PSDFile) -> Layer:
     """ Create a "root" layer with a copy of all top-level Layers parented to it. """
     root = Layer("root")
