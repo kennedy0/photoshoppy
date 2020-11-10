@@ -37,45 +37,69 @@ def _image_to_screen_space(image_data: np.array, image_rect: Rect, width: int, h
     return ss_image_data
 
 
-def composite_group(group: Layer, psd: PSDFile, bg: np.array or None) -> np.array:
-    if bg is None:
-        bg = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
+def _get_mask(layer: Layer, psd: PSDFile):
+    if layer.layer_mask is None:
+        return None
+    else:
+        return mask_to_screen_space(layer, psd)
 
-    image_data = bg
+
+def composite_group(group: Layer, psd: PSDFile, bg: np.array or None) -> np.array:
+    transparent_bg = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
+    if bg is None:
+        bg = transparent_bg
+
+    image_data = transparent_bg
     for layer in group.children:
         if layer.visible is False:
             continue
 
-        if layer.layer_mask is not None:
-            mask = mask_to_screen_space(layer, psd)
+        if layer.is_group is True:
+            fg_image_data = composite_group(group=layer, psd=psd, bg=image_data)
         else:
-            mask = None
-
-        if layer.is_group:
-            if layer.blend_mode.name == "pass through":
-                image_data = composite_group(group=layer, psd=psd, bg=image_data)
-            else:
-                group_image_data = composite_group(group=layer, psd=psd, bg=None)
-                group_image_data = _image_to_screen_space(
-                    image_data=group_image_data,
-                    image_rect=Rect(0, 0, psd.height, psd.width),
-                    width=psd.width,
-                    height=psd.height)
-                image_data = composite_image_data(
-                    fg=group_image_data,
-                    bg=image_data,
-                    blend_mode=layer.blend_mode,
-                    mask=mask,
-                    opacity=layer.opacity)
-        else:
-            image_data = composite_image_data(
-                fg=layer_to_screen_space(layer=layer, psd=psd),
-                bg=image_data,
-                blend_mode=layer.blend_mode,
-                mask=mask,
-                opacity=layer.opacity)
+            fg_image_data = layer_to_screen_space(layer, psd)
+        image_data = composite_image_data(
+            fg=fg_image_data,
+            bg=image_data,
+            blend_mode=layer.blend_mode,
+            mask=_get_mask(layer, psd),
+            opacity=layer.opacity)
 
     return image_data
+
+
+def flatten_group(group: Layer, psd: PSDFile, pass_through_bg: None or np.array = None) -> np.array:
+    transparent_bg = np.zeros((psd.height, psd.width, 4), dtype=np.uint8)
+    bg = transparent_bg
+
+    if group.blend_mode.name == "pass through" and pass_through_bg is not None:
+        bg = pass_through_bg
+
+    for layer in group.children:
+        if layer.visible is False:
+            continue
+
+        blend_mode = layer.blend_mode
+        if layer.is_group is True:
+            fg = flatten_group(group=layer, psd=psd, pass_through_bg=bg)
+            if layer.blend_mode.name == "pass through":
+                blend_mode = BlendMode.from_name("normal")
+        else:
+            fg = layer_to_screen_space(layer=layer, psd=psd)
+
+        group_image_data = composite_image_data(
+            fg=fg,
+            bg=bg,
+            blend_mode=blend_mode,
+            mask=_get_mask(layer, psd),
+            opacity=layer.opacity)
+
+        bg = group_image_data
+
+    image_data = bg
+
+    return image_data
+
 
 
 def composite_image_data(fg: np.array, bg: np.array, blend_mode: BlendMode, mask: np.array or None,

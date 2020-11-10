@@ -15,7 +15,7 @@ def render_psd(psd: PSDFile, file_path: str, overwrite: bool = False):
         raise FileExistsError(file_path)
 
     root = get_root_layer(psd)
-    image_data = render_utils.composite_group(group=root, psd=psd, bg=None)
+    image_data = render_utils.flatten_group(group=root, psd=psd)
     _write_image(image_data, file_path, "RGBA")
 
 
