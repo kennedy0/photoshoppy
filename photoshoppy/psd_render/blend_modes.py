@@ -12,52 +12,43 @@ def blend(blend_fn: Callable) -> np.array:
         fg = uint8_to_float(fg)
         bg = uint8_to_float(bg)
 
-        # Separate rgb and alpha channels
-        fg_rgb = fg[:, :, :3]
-        bg_rgb = bg[:, :, :3]
-        fg_alpha = fg[:, :, 3]
-        bg_alpha = bg[:, :, 3]
-
-        # Apply mask
         if mask is not None:
-            fg_alpha *= uint8_to_float(mask)
+            mask = uint8_to_float(mask)
+        else:
+            mask = np.ones((fg.shape[0], fg.shape[1]), dtype=np.float64)
 
-        # Calculate alpha
-        alpha = fg_alpha + bg_alpha - (fg_alpha * bg_alpha)
+        def over(src_rgba, dst_rgba):
+            """ Porter/Duff Over operator, using the blend mode for the "both" color.
+            This was super helpful: http://ssp.impulsetrain.com/porterduff.html
+            """
+            src_rgb = src_rgba[:, :, :3]
+            dst_rgb = dst_rgba[:, :, :3]
+            src_alpha = src_rgba[:, :, 3] * fg_opacity * mask
+            dst_alpha = dst_rgba[:, :, 3]
 
-        # Apply blending mode
-        blend_rgb = blend_fn(fg=fg_rgb, bg=bg_rgb)
+            src = src_rgb
+            dst = dst_rgb
+            both = blend_fn(src_rgb, dst_rgb)
 
-        # Composite new fg over bg
-        rgb = alpha_blend(blend_rgb, bg_rgb, fg_alpha, bg_alpha)
-        rgba = np.dstack([rgb, alpha])
+            # Area of coverage
+            area_src = src_alpha * (1 - dst_alpha)
+            area_dst = dst_alpha * (1 - src_alpha)
+            area_both = src_alpha * dst_alpha
 
-        # Blend final result with background color; scaled by opacity.
-        # This is to support Photoshop's Layer opacity, which operates after the blend is processed.
-        final_rgb = _opacity_blend(rgba, bg, opacity=fg_opacity)
-        final_rgba = np.dstack([final_rgb, alpha])
+            # Result rgb is effectively a blend + premultiplication
+            result_rgb = area_src[:, :, None] * src + area_dst[:, :, None] * dst + area_both[:, :, None] * both
+            result_alpha = area_src + area_dst + area_both
 
-        # Convert back to uint8
-        color = float_to_uint8(final_rgba)
-        return color
+            # Combine / unpremultiply result
+            result = np.dstack([result_rgb, result_alpha])
+            result = unpremultiply(result)
+            return result
+
+        color = over(fg, bg)
+
+        return float_to_uint8(color)
 
     return bm
-
-
-def alpha_blend(fg_color: np.array, bg_color: np.array, fg_alpha: np.array, bg_alpha: np.array) -> np.array:
-    """ Blend fg and bg together based on alpha channels. """
-    # Broadcast "None" in third dimension so we can multiply 3D color array by 2D alpha array
-    fg_alpha = fg_alpha[:, :, None]
-    bg_alpha = bg_alpha[:, :, None]
-
-    return (fg_color * fg_alpha + bg_color * bg_alpha * (1 - fg_alpha)) / (fg_alpha + bg_alpha * (1 - fg_alpha))
-
-
-def _opacity_blend(fg: np.array, bg: np.array, opacity: float) -> np.array:
-    """ Blend fg and bg together based on an opacity value. """
-    fg_color = fg[:, :, :3]
-    bg_color = bg[:, :, :3]
-    return (fg_color * opacity) + bg_color * (1 - opacity)
 
 
 @blend
@@ -70,8 +61,9 @@ def blend_normal(fg: np.array, bg: np.array) -> np.array:
     return fg
 
 
-def blend_dissolve(fg: np.array, bg: np.array, fg_opacity: float) -> np.array:
+def blend_dissolve(fg: np.array, bg: np.array, fg_opacity: float, mask) -> np.array:
     """ Dissolve is weird, so it does not use the blend decorator. """
+    raise NotImplementedError
     # Normalize uint8 numbers to a 0-1 floating point range.
     fg = uint8_to_float(fg)
     bg = uint8_to_float(bg)

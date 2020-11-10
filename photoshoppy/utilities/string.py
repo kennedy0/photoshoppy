@@ -1,4 +1,5 @@
 import os
+import re
 import struct
 from collections import namedtuple
 from typing import BinaryIO
@@ -50,3 +51,8 @@ def read_unicode_string(file: BinaryIO) -> str:
     ustring = struct.unpack(f'{bytes_length}s', file.read(bytes_length))[0]
     ustring = ustring.decode('utf-16-be')
     return ustring
+
+
+def clean_file_name(file_name: str) -> str:
+    """ Replace invalid file name characters. """
+    return re.sub(r"[^~A-Za-z0-9_\s]+", "", file_name)
